@@ -1,73 +1,57 @@
-package servidor;
-/*
- * so-j10a-04
- *Robert George Petchescu 
- */
+package servidor; // o ssoo.servidor según el enunciado
+
 import ssoo.telemetría.Numerable;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
-
-
+/**
+ * Implementación de una cola de trabajos concurrente y con capacidad limitada.
+ * Utiliza ArrayBlockingQueue para garantizar la seguridad en entornos multihilo
+ * y para manejar el bloqueo de hilos de forma automática y eficiente.
+ */
 public class ColaTrabajos implements Numerable {
-	
-	private final Trabajo [] cola;
-	private int inicio;
-	private int fin;
-	private final int tamaño;
-	private int nelem;
 
-	
-	public ColaTrabajos(int tamaño) {
-		super();
-		cola= new Trabajo [tamaño];
-		this.tamaño = tamaño;
-		inicio=fin=0;
-		nelem=0;
-	
-		
-	}
-	
+    private final BlockingQueue<Trabajo> cola;
 
+    public ColaTrabajos(int tamaño) {
+        super();
+        // 2. CONSTRUCTOR SIMPLIFICADO:
+        // Solo necesitamos inicializar la ArrayBlockingQueue con su capacidad.
+        this.cola = new ArrayBlockingQueue<>(tamaño);
+    }
 	
-	public synchronized  void  meter (Trabajo trabajo) throws InterruptedException {
-/*puesto que es una cola fifo, el trabajo que vayamos a meter se introducirá
- * en el último sitio de nuestra cola*/
-		
-		while (nelem == tamaño) {
-	        System.out.println("La cola está llena, esperando...");
-	       wait();
-	    }
-	    cola[fin] = trabajo; // Inserta el elemento en la posición final.
-	    System.out.println("TRABAJO "+trabajo.getTelemetria().getNombre()+" DEL ENCARGO: "+trabajo.getEncargo().getTítulo()+" AÑADIDO A LA COLA");
-	    fin = (fin + 1) % tamaño; // Avanza la posición de fin.
-	    nelem++;
-
-	    notify();
-	}
+    // 3. MÉTODO 'meter' (o 'encolar') REFACTORIZADO:
+    // No necesita 'synchronized'. El método put() es atómico y bloqueante.
+    public void meter(Trabajo trabajo) throws InterruptedException {
+        // Mensaje de log antes de la operación bloqueante
+        System.out.println("TRABAJO " + trabajo.getTelemetria().getNombre() + " DEL ENCARGO: " + trabajo.getEncargo().getTítulo() + " A PUNTO DE ENTRAR EN LA COLA");
+        
+        // put() hará que el hilo espere AUTOMÁTICAMENTE si la cola está llena.
+        cola.put(trabajo);
+        
+        System.out.println("TRABAJO AÑADIDO A LA COLA");
+    }
 	
-	
-	public synchronized  Trabajo sacar() throws InterruptedException {
-		
-		 while (nelem == 0) {
-		        System.out.println("No hay elementos en la cola, esperando...");
-		        wait();
-		    }
+    // 4. MÉTODO 'sacar' REFACTORIZADO:
+    // Tampoco necesita 'synchronized'. El método take() es atómico y bloqueante.
+    public Trabajo sacar() throws InterruptedException {
+        // take() hará que el hilo espere AUTOMÁTICAMENTE si la cola está vacía.
+        Trabajo t = cola.take(); 
+        
+        // Mensaje de log después de haber sacado el trabajo
+        System.out.println("TRABAJO " + t.getTelemetria().getNombre() + " DEL ENCARGO: " + t.getEncargo().getTítulo() + " EXTRAIDO DE LA COLA");
+        
+        return t;
+    }
 
-		    Trabajo t = cola[inicio]; // Extrae el primer elemento.
-		    System.out.println("TRABAJO "+t.getTelemetria().getNombre()+" DEL ENCARGO: "+t.getEncargo().getTítulo()+" EXTRAIDO DE LA COLA");
-		    inicio = (inicio + 1) % tamaño; // Avanza la posición de inicio.
-		    nelem--;
-		    
-		    notify();
-		    
-		    return t;
-	}
-
-
-
-	@Override
-	public int numTrabajos() {
-		// TODO Auto-generated method stub
-		return nelem;
-	}
+    // 5. MÉTODO DE LA INTERFAZ 'Numerable':
+    // El enunciado indica que la interfaz Numerable debe ser usada por el panel.
+    // El método size() de la cola nos da el número de elementos de forma segura.
+    // Nota: He cambiado el nombre de 'numTrabajos' a 'getNumElementos' que es
+    // más estándar, ajústalo si tu interfaz se llama diferente.
+    @Override
+    public int numTrabajos() {
+        return cola.size();
+    }
 
 }
