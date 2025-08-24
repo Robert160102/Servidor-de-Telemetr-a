@@ -23,8 +23,7 @@ public class ColaTrabajos implements Numerable {
      */
     public void meter(Trabajo trabajo) throws InterruptedException {
         cola.put(trabajo);
-        System.out.println("[ColaTrabajos] Trabajo " + trabajo.getTelemetria().getNombre() +
-                " del encargo " + trabajo.getEncargo().getTítulo() + " añadido a la cola.");
+        System.out.println("[ColaTrabajos] Trabajo " + trabajo.getTelemetria().getNombre() + " añadido a la cola.");
     }
 
     /**
@@ -33,8 +32,7 @@ public class ColaTrabajos implements Numerable {
      */
     public Trabajo sacar() throws InterruptedException {
         Trabajo t = cola.take();
-        System.out.println("[ColaTrabajos] Trabajo " + t.getTelemetria().getNombre() +
-                " del encargo " + t.getEncargo().getTítulo() + " extraído de la cola.");
+        System.out.println("[ColaTrabajos] Trabajo " + t.getTelemetria().getNombre()+ " extraído de la cola.");
         return t;
     }
 
