@@ -1,52 +1,53 @@
 package servidor;
-/*
- * so-j10a-04
- *Robert George Petchescu 
- */
-import ssoo.telemetría.Encargo;
+
 import ssoo.telemetría.Telemetría;
 
 public class Trabajo {
-	
 
-	private Telemetría telemetria;
-	private Encargo eng;
-	private boolean procesado;
-	
-	public Trabajo(Telemetría telemetria, Encargo eng) {
-		super();
-		this.procesado=false; //por defecto un trabajo NO esta procesado/analizado
-		this.telemetria = telemetria;
-		this.eng=eng;
-	}
-	
-	public boolean getProcesado() {
-		return procesado; 
-	}
-	
-	public void setProcesado(boolean estado) {
-		procesado=estado;
-	}
+    private final Telemetría telemetriaOriginal;
+    private Telemetría telemetriaAnalizada;
+    private boolean completado = false;
 
-	public Telemetría getTelemetria() {
-		return telemetria;
-	}
-	public void setTelemetria(Telemetría telemetria) {
-		this.telemetria = telemetria;
-	}
-	
-	public Encargo getEncargo() {
-		return eng;
-		
-	}
-	
-	
-	
-	
-	
-	
-	
+    public Trabajo(Telemetría telemetriaOriginal) {
+        this.telemetriaOriginal = telemetriaOriginal;
+    }
 
-	
+    /**
+     * Devuelve la telemetría original (antes del análisis).
+     */
+    public Telemetría getTelemetria() {
+        return telemetriaOriginal;
+    }
 
+    /**
+     * Método llamado por el HiloAnalizador cuando termina el análisis.
+     * Marca el trabajo como completado y despierta a todos los hilos
+     * que estaban esperando.
+     */
+    public synchronized void marcarCompletado(Telemetría analizada) {
+        if (!completado) {
+            this.telemetriaAnalizada = analizada;
+            this.completado = true;
+            notifyAll();
+        }
+    }
+
+    /**
+     * Método llamado por los HiloPeticion.
+     * Si el trabajo ya está completo devuelve la telemetría analizada.
+     * Si no, espera hasta que el análisis se complete.
+     */
+    public synchronized Telemetría esperarYObtenerResultado() throws InterruptedException {
+        while (!completado) {
+            wait();
+        }
+        return telemetriaAnalizada;
+    }
+
+    /**
+     * Indica si el trabajo ya está finalizado.
+     */
+    public synchronized boolean isCompletado() {
+        return completado;
+    }
 }
