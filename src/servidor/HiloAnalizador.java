@@ -1,48 +1,45 @@
 package servidor;
-/*
- * so-j10a-04
- *Robert George Petchescu 
- */
+
 import ssoo.telemetría.Analizador;
 import ssoo.telemetría.Telemetría;
+import ssoo.telemetría.panel.PanelVisualizador;
 
 public class HiloAnalizador implements Runnable {
-	
-	ColaTrabajos ct;
-	private Analizador	a= new Analizador();
-	
-    
-	
-	/*Va a ser necesario pasarle al hilo analizador la cola de la cual debe
-	 * sacar lo trabajos para su posterior análisis*/
-	public HiloAnalizador(ColaTrabajos ct) {
-		super();
-		this.ct = ct;
-		
-		
-	}
 
-	@Override
-	public void run() {
-	    while(true) {
-	    
-	        try {
-	            Trabajo t = ct.sacar(); // Obtiene el trabajo de la cola
-	            if (t!= null) { 
-	                synchronized (t) {
-	                	System.out.println("ANALIZANDO TRABAJO: "+t.getTelemetria().getNombre()+" DEL ENCARGO: "+t.getEncargo().getTítulo());
-	                    Telemetría tel = a.analizar(t.getTelemetria());
-	                    t.setTelemetria(tel);
-	                    System.out.println("ANALISIS DEL TRABAJO "+t.getTelemetria().getNombre()+" DEL ENCARGO: "+t.getEncargo().getTítulo()+" FINALIZADO");
-	                    t.setProcesado(true);//cambiamos el estado del trabajo a procesado/analizado
-	                    t.notifyAll();  // Notifica que el trabajo ha sido analizado
-	                   
-	                }
-	            }
-	        } catch (InterruptedException e) {
-	            e.printStackTrace();
-	        }
-	    }
-	}
+    private final ColaTrabajos colaDeTrabajos;
+    private final Analizador analizador;
 
+    public HiloAnalizador(ColaTrabajos colaDeTrabajos) {
+        this.colaDeTrabajos = colaDeTrabajos;
+        this.analizador = new Analizador();
+        // Registrar analizador en el panel visualizador
+        PanelVisualizador.getPanel().registrarAnalizador(this.analizador);
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                // 1. Obtener trabajo de la cola (bloqueante si está vacía)
+                Trabajo trabajo = colaDeTrabajos.sacar();
+
+                System.out.println("[HiloAnalizador] Analizando telemetría: " +
+                        trabajo.getTelemetria().getNombre());
+
+                // 2. Analizar la telemetría
+                Telemetría telemetriaAnalizada = analizador.analizar(trabajo.getTelemetria());
+
+                // 3. Marcar el trabajo como completado
+                trabajo.marcarCompletado(telemetriaAnalizada);
+
+                System.out.println("[HiloAnalizador] Trabajo completado: " +
+                        telemetriaAnalizada.getNombre());
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("[HiloAnalizador] Interrumpido. Terminando...");
+                break;
+            }
+        }
+    }
 }
