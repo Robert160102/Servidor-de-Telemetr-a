@@ -1,6 +1,5 @@
 package servidor;
 /*
- * so-j10a-04
  *Robert George Petchescu 
  */
 import java.io.IOException;
