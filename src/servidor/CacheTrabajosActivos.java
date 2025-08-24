@@ -1,71 +1,57 @@
 package servidor;
-/*
- * so-j10a-04
- *Robert George Petchescu 
- */
-import java.util.Iterator;
+
 import java.util.concurrent.ConcurrentHashMap;
+import ssoo.telemetría.Numerable;
 
+/**
+ * Caché de trabajos activos. 
+ * Almacena trabajos en curso o ya completados, 
+ * evitando reprocesar la misma telemetría varias veces.
+ */
+public class CacheTrabajosActivos implements Numerable {
 
-
-public class CacheTrabajosActivos implements ssoo.telemetría.Numerable {
-    // Almacenamiento concurrente de trabajos
     private final ConcurrentHashMap<String, Trabajo> cache;
-   
 
     public CacheTrabajosActivos() {
         this.cache = new ConcurrentHashMap<>();
-        
-       
     }
 
-  
-    public Trabajo ComprobarTrabajo(Trabajo trabajo) {
-       
-        
-           Trabajo t=cache.putIfAbsent(trabajo.getTelemetria().getNombre(), trabajo);/*El metodo putIfAbsent
-           solo insertara el trabajo en la cache si la telemetria no existe, es decir inserta V si K no existe*/
-           
-           
-           if(t!=null) {//Si devuelve algo que no sea un Null, es decir que ha encontrado esa K en la cache, significa que el tanbajo ya estaba registrado
-        	   System.out.println("EL TRABAJO: "+t.getTelemetria().getNombre()+" DEL ENCARGO "+t.getEncargo().getTítulo()+" ENCONTRADO EN LA CACHE");
-        	   return t;
-           }else {
-        	   System.out.println("AÑADIENDO EL TRABAJO: "+trabajo.getTelemetria().getNombre()+" DEL ENCARGO "+trabajo.getEncargo().getTítulo()+" A LA CACHE");
-           synchronized (this) {
-               if (cache.size() >= 40) {
-                   notify();  // Despertar al HiloLiberador
-               }
-               return trabajo;
-           }
-         }
-    }
-    
-    public void EliminarTrabajo(int LimiteInf){
-    	
-    	Iterator<Trabajo> i = cache.values().iterator();
-    	int contador=0;
-    	
-    	while(i.hasNext()&& contador < LimiteInf) {
-    		Trabajo trabajo = i.next();
-    		synchronized(trabajo) {
-    			
-    			if(trabajo.getProcesado()==false) { /*En caso de que el trabajo aun no haya sido procesado lo vamos a eliminar de la cache*/
-					System.out.println("ELIMINAMOS EL TRABAJO: "+trabajo.getTelemetria().getNombre()+" PERTENECIENTE AL ENCARGO: "+trabajo.getEncargo().getTítulo()+" DE LA CACHE POR DESUSO");
-					i.remove();
-					contador++;
-    			
-    			
-    			}
-    		}
-    	}
-    	
+    /**
+     * Devuelve un trabajo de la caché si existe, o null si no está.
+     */
+    public Trabajo obtener(String clave) {
+        return cache.get(clave);
     }
 
+    /**
+     * Inserta un trabajo en la caché si no existía ya.
+     * Devuelve el trabajo existente en caso de colisión, 
+     * o el nuevo trabajo si se insertó con éxito.
+     */
+    public Trabajo insertar(String clave, Trabajo nuevo) {
+        Trabajo existente = cache.putIfAbsent(clave, nuevo);
+        if (existente != null) {
+            System.out.println("[Cache] Trabajo ya existente para " + clave + ". Reutilizando.");
+            return existente;
+        } else {
+            System.out.println("[Cache] Trabajo insertado para " + clave);
+            return nuevo;
+        }
+    }
 
-	@Override
-	public int numTrabajos() {
-		// TODO Auto-generated method stub
-		return cache.size();
-	}
+    /**
+     * Elimina un trabajo de la caché (pensado para Fase 4 - liberador).
+     */
+    public void eliminar(String clave) {
+        cache.remove(clave);
+        System.out.println("[Cache] Trabajo eliminado para " + clave);
+    }
+
+    /**
+     * Devuelve el número de trabajos activos en la caché.
+     */
+    @Override
+    public int numTrabajos() {
+        return cache.size();
+    }
 }
