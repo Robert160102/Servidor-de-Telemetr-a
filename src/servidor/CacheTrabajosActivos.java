@@ -17,7 +17,7 @@ public class CacheTrabajosActivos implements Numerable {
     }
 
     /**
-     * Devuelve un trabajo de la caché si existe, o null si no está.
+     * Devuelve un trabajo de la caché si existe, o null si no está. 
      */
     public Trabajo obtener(String clave) {
         return cache.get(clave);
